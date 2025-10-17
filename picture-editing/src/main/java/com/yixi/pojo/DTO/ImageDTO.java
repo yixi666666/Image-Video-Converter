@@ -1,0 +1,10 @@
+package com.yixi.pojo.DTO;
+
+import lombok.Data;
+
+@Data
+public class ImageDTO {
+    private String imageBase64;  // 图片的Base64编码
+    private String fileName;     // 文件名
+    private String fileType;     // 文件类型（MIME类型）
+}
