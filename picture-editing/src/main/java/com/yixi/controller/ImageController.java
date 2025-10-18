@@ -27,6 +27,7 @@ public class ImageController {
     public Result<ImageVO> imageCrop(@RequestBody ImageDTO request) throws IOException {
         //图片裁剪
         String processedImageBase64 = imageService.imageCropping(request.getImageBase64());
+        log.info("processedImageBase64:{}", processedImageBase64);
 
         return Result.success(ImageVO.builder()
                         .imageBase64(processedImageBase64)
