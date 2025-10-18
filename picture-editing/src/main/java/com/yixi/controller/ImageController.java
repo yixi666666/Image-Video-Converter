@@ -38,6 +38,7 @@ public class ImageController {
     @PostMapping("/toBraille")
     public Result<ImgToBrailleStrVO> imageToBraille (@Valid @RequestBody ImgAndConfigDTO request) throws IOException{
         String brailleStr = imageService.imageToBraille(request);
+        log.info("brailleStr:{}", brailleStr);
         return Result.success(new ImgToBrailleStrVO(brailleStr));
     }
 
