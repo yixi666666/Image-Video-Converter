@@ -28,6 +28,8 @@
         <druid>1.2.1</druid>
         <aspectj>1.9.4</aspectj>
         <jjwt>0.9.1</jjwt>
+        <javacv-platform>1.5.8</javacv-platform>
+        <json>20230227</json>
     </properties>
 
     <dependencyManagement>
@@ -61,6 +63,16 @@
                 <groupId>org.aspectj</groupId>
                 <artifactId>aspectjweaver</artifactId>
                 <version>${aspectj}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.bytedeco</groupId>
+                <artifactId>javacv-platform</artifactId>
+                <version>${javacv-platform}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.json</groupId>
+                <artifactId>json</artifactId>
+                <version>${json}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

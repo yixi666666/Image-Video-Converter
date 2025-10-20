@@ -23,18 +23,6 @@ public class ImageController {
     @Autowired
     private ImageService imageService;
 
-    @PostMapping("/crop")
-    public Result<ImageVO> imageCrop(@RequestBody ImageDTO request) throws IOException {
-        //图片裁剪
-        String processedImageBase64 = imageService.imageCropping(request.getImageBase64());
-
-        return Result.success(ImageVO.builder()
-                        .imageBase64(processedImageBase64)
-                        .fileName(request.getFileName())
-                        .fileType(request.getFileType())
-                        .build());
-    }
-
     @PostMapping("/toBraille")
     public Result<ImgToBrailleStrVO> imageToBraille (@Valid @RequestBody ImgAndConfigDTO request) throws IOException{
         String brailleStr = imageService.imageToBraille(request);

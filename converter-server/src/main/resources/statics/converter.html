@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图片/视频转字符工具</title>
+    <!-- 引入外部资源 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- 引入合并后的样式 -->
+    <link rel="stylesheet" href="converter.css">
+</head>
+<body class="font-sans bg-gradient-to-br from-blue-50 via-white to-purple-50 text-dark min-h-screen flex flex-col">
+<!-- 页面标题 -->
+<header class="bg-white/80 backdrop-blur-sm shadow-lg py-5 px-6 border-b border-blue-100">
+    <div class="max-w-full mx-auto">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+            <div>
+                <div class="flex items-center space-x-4">
+                    <button id="switch-mode" class="cursor-pointer">
+                        <h1 class="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent flex items-center">
+                            <i class="fa fa-magic mr-3 text-purple-500"></i>
+                            <span id="page-title">图片转字符工具</span>
+                        </h1>
+                    </button>
+                    <span class="text-sm text-gray-500 self-end">
+                        <i class="fa fa-exchange mr-1"></i> 点击标题切换模式
+                    </span>
+                </div>
+            </div>
+            <div class="mt-3 md:mt-0">
+                <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 border border-blue-200">
+                    <i class="fa fa-star mr-1 text-yellow-500"></i> 在线工具
+                </span>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- 主要内容区 -->
+<main class="flex-grow flex flex-col">
+    <!-- 上部区域：文件选择和参数设置 -->
+    <section class="w-full p-6" id="upper-section">
+        <div class="max-w-full mx-auto">
+            <div class="flex flex-col lg:flex-row gap-8">
+                <!-- 左侧：文件上传和预览区 (3/5) -->
+                <div class="w-full lg:w-3/5">
+                    <div class="card-gradient p-1 rounded-2xl shadow-xl h-full">
+                        <div class="bg-white rounded-xl p-6 shadow-inner h-full flex flex-col">
+                            <!-- 新增父容器：用flex布局包裹标题和按钮 -->
+                            <div class="preview-header flex items-center justify-between">
+                                <h2 class="text-xl font-semibold mb-4 text-gray-800 flex items-center">
+                                    <i id="preview-icon" class="fa fa-image mr-3 text-blue-500"></i>
+                                    <span id="preview-title">图片预览区</span>
+                                </h2>
+                                <button id="select-file-btn">
+                                    <i class="fa fa-plus-circle mr-1"></i> 选择图片
+                                </button>
+                            </div>
+                            <div id="file-container" class="image-drop-zone w-full flex-1 flex flex-col items-center justify-center relative overflow-hidden">
+                                <input type="file" id="file-upload" accept="image/*" class="hidden" />
+                                <div class="text-center z-10">
+                                    <i class="fa fa-cloud-upload text-6xl text-blue-300 mb-4"></i>
+                                    <p class="text-gray-600 font-medium text-lg mb-1" id="upload-text">支持拖放图片</p>
+                                    <p class="text-gray-500 text-sm px-6" id="file-formats">支持 JPG、PNG、BMP 等常见图片格式</p>
+                                </div>
+                                <img id="preview-image" class="hidden absolute inset-0 w-full h-full object-contain p-4" alt="预览图片" />
+                                <video id="preview-video" class="hidden absolute inset-0 w-full h-full object-contain p-4" controls alt="预览视频"></video>
+                                <div class="absolute inset-0 bg-gradient-to-br from-blue-50/30 to-purple-50/30"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 右侧：参数设置区 (2/5) -->
+                <div class="w-full lg:w-2/5">
+                    <div class="card-gradient p-1 rounded-2xl shadow-xl h-full">
+                        <div class="bg-white rounded-xl p-6 shadow-inner h-full flex flex-col">
+                            <h2 class="text-xl font-semibold mb-4 text-gray-800 flex items-center">
+                                <i class="fa fa-sliders mr-3 text-purple-500"></i>转换参数设置
+                            </h2>
+
+                            <div class="space-y-6 flex-1">
+                                <!-- 算法选项 -->
+                                <div class="checkbox-container">
+                                    <input type="checkbox" id="dither-algorithm" class="checkbox-input">
+                                    <label for="dither-algorithm" class="checkbox-label">
+                                        <span class="font-medium">采用算法</span>
+                                    </label>
+                                </div>
+
+                                <div class="checkbox-container">
+                                    <input type="checkbox" id="monospace" class="checkbox-input" checked>
+                                    <label for="monospace" class="checkbox-label">
+                                        <span class="font-medium">等宽显示</span>
+                                    </label>
+                                </div>
+
+                                <div class="checkbox-container">
+                                    <input type="checkbox" id="invert-colors" class="checkbox-input">
+                                    <label for="invert-colors" class="checkbox-label">
+                                        <span class="font-medium">反色处理</span>
+                                    </label>
+                                </div>
+
+                                <!-- 字符宽度设置 -->
+                                <div class="mt-6">
+                                    <label for="char-width" class="block text-sm font-medium text-gray-700 mb-3 flex items-center">
+                                        <i class="fa fa-arrows-h mr-2 text-blue-500"></i> 输出的字符宽度
+                                    </label>
+                                    <div class="flex items-center space-x-4">
+                                        <input type="range" id="char-width-range" min="10" max="500" value="100"
+                                               class="flex-2/3 h-2 bg-blue-100 rounded-lg appearance-none cursor-pointer slider-custom">
+                                        <input type="number" id="char-width" min="10" max="500" value="100"
+                                               class="param-control w-1/3 text-center font-medium">
+                                    </div>
+                                </div>
+
+                                <!-- 转换按钮 -->
+                                <div class="pt-4 mt-auto">
+                                    <button id="convert-btn" class="btn-gradient w-full py-4 text-lg font-semibold flex items-center justify-center rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                                        <i class="fa fa-magic mr-3"></i> 开始转换
+                                        <i class="fa fa-arrow-right ml-2 text-sm"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 下部区域：结果展示和保存以及复制 -->
+    <section class="flex-grow w-full" id="lower-section">
+        <div class="card-gradient p-1 rounded-2xl shadow-xl mx-6 mb-6">
+            <div class="bg-white rounded-xl overflow-hidden">
+                <div class="p-5 bg-gradient-to-r from-blue-500 to-purple-600 flex justify-between items-center">
+                    <h2 class="text-xl font-semibold text-white flex items-center">
+                        <i id="result-icon" class="fa fa-file-text-o mr-3"></i> 转换结果
+                    </h2>
+                    <div class="flex gap-3">
+                        <button id="copy-btn" class="btn-secondary flex items-center rounded-xl px-5 py-3 font-medium shadow-lg hover:shadow-xl transition-all">
+                            <i class="fa fa-copy mr-2"></i> 复制结果
+                        </button>
+                        <button id="save-btn" class="btn-primary flex items-center rounded-xl px-5 py-3 font-medium shadow-lg hover:shadow-xl transition-all">
+                            <i class="fa fa-download mr-2"></i> 保存文件
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 结果展示区 -->
+                <div class="result-container">
+                    <div class="result-content-wrapper">
+                        <div id="result-content" class="max-w-none mx-auto bg-gradient-to-br from-gray-50 to-blue-50/30 p-8 rounded-lg border border-blue-100">
+                            <div class="flex items-center justify-center h-[500px] text-gray-400">
+                                <div class="text-center max-w-md">
+                                    <i id="result-placeholder-icon" class="fa fa-file-text-o text-7xl mb-6 text-blue-200"></i>
+                                    <p class="text-xl font-medium text-gray-500 mb-3">等待转换结果</p>
+                                    <p class="text-gray-400" id="result-placeholder-text">请上传图片并点击转换按钮</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 底部固定大小滚动条 -->
+                    <div class="horizontal-scroll-bottom">
+                        <div class="scroll-content"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+
+<!-- 页脚 -->
+<footer class="bg-gradient-to-r from-gray-800 to-gray-900 text-white py-6 px-6 border-t border-gray-700">
+    <div class="max-w-full mx-auto">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+            <div class="text-center md:text-left mb-4 md:mb-0">
+                <p class="text-gray-400 text-sm">创造独特的字符艺术体验</p>
+            </div>
+            <div class="text-center md:text-right">
+                <p class="text-gray-400 text-sm flex items-center justify-center md:justify-end">
+                    <i class="fa fa-heart text-red-400 mr-2"></i> 字符转换工具——忆昔 &copy; 2025
+                </p>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<!-- 加载提示 -->
+<div id="loading" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+    <div class="bg-white p-8 rounded-2xl shadow-2xl flex flex-col items-center max-w-sm transform transition-all duration-300 scale-95">
+        <div class="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <p class="text-xl font-semibold text-gray-800 mb-2" id="loading-text">正在处理图片</p>
+        <p class="text-gray-600 text-center" id="loading-desc">正在将图片转换为字符艺术，请稍候...</p>
+    </div>
+</div>
+
+<!-- 成功提示 -->
+<div id="success-toast" class="fixed top-6 right-6 bg-green-500 text-white p-4 rounded-xl shadow-2xl transform translate-x-full transition-transform duration-300 z-50 max-w-sm">
+    <div class="flex items-center">
+        <i class="fa fa-check-circle text-xl mr-3"></i>
+        <div>
+            <p class="font-medium">转换完成</p>
+            <p class="text-sm opacity-90" id="success-message">字符艺术已生成</p>
+        </div>
+    </div>
+</div>
+
+<!-- 引入合并后的JavaScript -->
+<script src="converter.js"></script>
+</body>
+</html>

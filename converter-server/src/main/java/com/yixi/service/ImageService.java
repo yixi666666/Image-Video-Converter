@@ -8,7 +8,6 @@ import java.io.IOException;
 
 @Service
 public interface ImageService {
-    String imageCropping(String image) throws IOException;
 
     String imageToBraille(ImgAndConfigDTO imgAndConfigDTO) throws IOException;
 
