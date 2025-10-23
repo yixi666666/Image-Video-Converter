@@ -9,8 +9,12 @@ import com.yixi.utils.ImageUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.util.Base64;
 
 @Service
 @Slf4j
@@ -18,8 +22,6 @@ public class VideoServiceImpl implements VideoService {
     public String vidFrameToBraille(VidFrameAndConfigDTO vidFrameAndConfig) throws IOException {
         String vidFrameBase64 = vidFrameAndConfig.getImage().getImageBase64();
         BrailleConvertConfigDTO config = vidFrameAndConfig.getConfig();
-
-        log.debug(config.toString());
 
         BufferedImage originalImage = ImageUtils.base64ToBufferedImage(vidFrameBase64);
         BufferedImage processedImage = ImageProcessor.loadImage(originalImage,config.getOutputWidth());

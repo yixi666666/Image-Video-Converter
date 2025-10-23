@@ -1,1 +1,6 @@
-spring.application.name=converter-server
+server:
+  port: 8080  # 自定义端口（可选）
+
+video:
+  local-path: "F:/Java-related Projects/imgOrVideoToStr/converter-server/src/main/resources/temp/"  # 视频存储路径
+  http-prefix: "/api/videos/"  # HTTP访问前缀

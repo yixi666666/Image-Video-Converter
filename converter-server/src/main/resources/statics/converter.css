@@ -119,6 +119,28 @@ body {
     color: white;
     border: none;
 }
+/* 播放模式按钮样式 */
+#play-mode-btn {
+    min-width: 120px;
+    justify-content: center;
+}
+/* 自定义禁用状态的样式 */
+.play-mode-btn-disabled {
+    /* 灰色背景 */
+    background-color: #2cbb45;
+    /* 灰色文字 */
+    color: #d51e1e;
+    /* 去除hover效果（如果有） */
+    cursor: not-allowed;
+}
+
+#play-mode-btn i {
+    transition: transform 0.3s ease;
+}
+
+#play-mode-btn:hover i {
+    transform: scale(1.1);
+}
 
 /* 在converter.css中添加 */
 #preview-video {

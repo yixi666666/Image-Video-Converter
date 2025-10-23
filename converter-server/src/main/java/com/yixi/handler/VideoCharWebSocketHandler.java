@@ -1,9 +1,8 @@
 package com.yixi.handler;
 
 import org.json.JSONObject;
-import org.springframework.web.socket.CloseStatus;
-import org.springframework.web.socket.TextMessage;
-import org.springframework.web.socket.WebSocketSession;
+import org.springframework.stereotype.Component;
+import org.springframework.web.socket.*;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import java.io.IOException;
@@ -61,4 +60,21 @@ public class VideoCharWebSocketHandler extends TextWebSocketHandler {
             System.out.println("客户端 " + clientId + " 不存在或已关闭连接");
         }
     }
+
+    // 定义通知前端处理完成的方法
+    public void sendProcessingCompleteTo(String clientId) {
+        WebSocketSession session = sessionMap.get(clientId); // 从sessionMap中获取对应的WebSocketSession
+        if (session != null && session.isOpen()) {
+            try {
+                // 构建消息（你可以添加更多内容）
+                String json = "{\"message\": \"所有字符帧处理完成\"}";
+                session.sendMessage(new TextMessage(json));  // 发送消息到客户端
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        } else {
+            System.out.println("客户端 " + clientId + " 不存在或已关闭连接");
+        }
+    }
+
 }

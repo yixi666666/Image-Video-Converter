@@ -2,14 +2,14 @@
 let currentMode = 'image'; // 'image' 或 'video'
 let isProcessingVideo = false; // 视频处理状态
 // 全局变量
-let videoFrames = []; // 实时缓存帧
 let currentFrameIndex = 0;
 let isPlaying = false;
 let playInterval;
 let currentSpeed = 1;
-let frames = [];
+let frames = []; // 储存所有字符帧，用于播放
 let isMonospace = true;
 let fps = 10;//字符帧播放的每秒帧数
+let  videoPath = null; //后端返回视频路径
 
 // DOM 元素
 const fileContainer = document.getElementById('file-container');
@@ -17,6 +17,9 @@ const fileUpload = document.getElementById('file-upload');
 const previewImage = document.getElementById('preview-image');
 const previewVideo = document.getElementById('preview-video');
 const convertBtn = document.getElementById('convert-btn');
+const playModeBtn = document.getElementById('play-mode-btn');
+playModeBtn.disabled = true;//初始设置不可交互
+playModeBtn.classList.add('play-mode-btn-disabled');//添加自定义红色样式
 const saveBtn = document.getElementById('save-btn');
 const copyBtn = document.getElementById('copy-btn');
 const resultContent = document.getElementById('result-content');
@@ -89,8 +92,13 @@ function updateModeUI() {
     // 更新文件选择器类型
     fileUpload.accept = currentMode === 'image' ? 'image/*' : 'video/*';
 
-    // 显示/隐藏复制按钮
-    copyBtn.style.display = currentMode === 'image' ? 'flex' : 'none';
+    // 显示复制按钮
+    copyBtn.style.display = 'flex';
+
+    // 更新按钮文本
+    copyBtn.innerHTML = currentMode === 'image'
+        ? '<i class="fa fa-copy mr-2"></i>复制结果'
+        : '<i class="fa fa-video-camera mr-2"></i>保存视频';
 
     // 更新占位文本
     resultPlaceholderText.textContent = currentMode === 'image' ? '请上传图片并点击转换按钮' : '请上传视频并点击转换按钮';
@@ -104,6 +112,9 @@ function updateModeUI() {
     selectBtn.innerHTML = currentMode === 'image'
         ? '<i class="fa fa-plus-circle mr-1"></i> 选择图片'
         : '<i class="fa fa-plus-circle mr-1"></i> 选择视频';
+
+    // 控制播放模式按钮显示
+    playModeBtn.style.display = currentMode === 'video' ? 'flex' : 'none';
 }
 
 // 重置预览区域
@@ -256,7 +267,7 @@ function initScrollSync() {
     }
 }
 
-// 添加新按钮的点击事件
+// 添加新文件的点击事件
 document.getElementById('select-file-btn').addEventListener('click', () => {
     fileUpload.click();
 });
@@ -301,6 +312,12 @@ fileUpload.addEventListener('change', (e) => {
         };
 
         reader.readAsDataURL(file);
+        //选择新文件，之前的资源全部清除
+        videoPath=null;
+        frames=[]
+        playModeBtn.disabled = true;//初始设置不可交互
+        playModeBtn.classList.add('play-mode-btn-disabled');//添加自定义灰色样式
+
     }
 });
 
@@ -412,6 +429,7 @@ convertBtn.addEventListener('click', async () => {
         if (currentMode === 'image') {
             await processImage(charWidth);
         } else {
+            frames = [];
             await processVideo(charWidth);
         }
 
@@ -504,15 +522,18 @@ function initWebSocket() {
             if (json.clientId) {
                 clientId = json.clientId;
                 console.log("🎯 已分配客户端 ID:", clientId);
-                // ✅ WebSocket 建立完成后再启动视频处理逻辑
-                if (typeof startVideoProcess === 'function') {
-                    startVideoProcess();
-                }
-                return; // 不继续处理
             }
             if (json.frame) {
                 const frameText = json.frame.replace(/\\n/g, '\n');
                 displayCharFrame(frameText);
+                return;
+            }
+            if (json.message === "所有字符帧处理完成") {
+                console.log(json.message);
+                // 你可以在这里更新UI或弹出提示框
+                // 恢复可交互
+                playModeBtn.disabled = false;
+                playModeBtn.classList.remove('play-mode-btn-disabled');
                 return;
             }
             console.log("📩 收到未知类型消息:", json);
@@ -560,21 +581,24 @@ async function processVideo(charWidth) {
     }
     console.log("✅ WebSocket 已准备好，clientId =", clientId);
 
+    processVideoFrames(previewVideo, 10, charWidth, clientId);
+}
+
+async function processVideoFrames(videoElement, fps, charWidth, clientId) {
     // 创建视频画布
     const videoCanvas = document.createElement('canvas');
     const videoCtx = videoCanvas.getContext('2d');
 
-    const video = previewVideo;
-    const fps = 10; // 每秒提取10帧
+    const video = videoElement;
     const duration = video.duration;
     const totalFrames = Math.floor(duration * fps);
 
-    //loadingDesc.textContent = `正在提取视频帧 (0/${totalFrames})...`;
-
+    // 逐帧处理
     for (let i = 0; i < totalFrames; i++) {
+        // 更新进度
         //loadingDesc.textContent = `正在提取视频帧 (${i}/${totalFrames})...`;
 
-        // 跳转时间
+        // 跳转到当前帧时间
         video.currentTime = i / fps;
 
         // 等待一帧渲染
@@ -585,7 +609,7 @@ async function processVideo(charWidth) {
             });
         });
 
-        // 绘制到 canvas
+        // 绘制当前帧到画布
         videoCanvas.width = video.videoWidth;
         videoCanvas.height = video.videoHeight;
         videoCtx.drawImage(video, 0, 0, videoCanvas.width, videoCanvas.height);
@@ -604,6 +628,7 @@ async function processVideo(charWidth) {
                 outputWidth: charWidth
             }
         };
+
         // 发给后端处理
         const response = await fetch(`http://localhost:8080/api/video/convertFrame/${clientId}`, {
             method: 'POST',
@@ -618,9 +643,21 @@ async function processVideo(charWidth) {
         }
     }
 
+    // 所有帧处理完成后，通知后端
+    await fetch('http://localhost:8080/api/video/finish', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    });
+
+    console.log('视频处理完成');
     isProcessingVideo = false;
-    //loadingDesc.textContent = '视频处理完成';
+
 }
+
+
+
 // ======================== 视频显示控件 ========================
 function displayCharFrame(charFrame) {
     console.log(
@@ -657,12 +694,7 @@ function displayResult(text, isMonospace) {
 function renderVideoControls() {
     const resultHtml = `
         <div class="video-result-controls mb-4 flex items-center gap-4">
-            <button id="play-video-result" class="btn-primary px-4 py-2 rounded-lg">
-                <i class="fa fa-play mr-2"></i>播放
-            </button>
-            <button id="pause-video-result" class="btn-secondary px-4 py-2 rounded-lg hidden">
-                <i class="fa fa-pause mr-2"></i>暂停
-            </button>
+            
             <div class="ml-auto">
                 <label for="video-speed" class="text-gray-600 mr-2">速度:</label>
                 <select id="video-speed" class="param-control px-2 py-1 rounded">
@@ -673,10 +705,16 @@ function renderVideoControls() {
                     <option value="3">3x</option>
                 </select>
             </div>
+            <button id="play-video-result" class="btn-primary px-4 py-2 rounded-lg">
+                <i class="fa fa-play mr-2"></i>播放
+            </button>
+            <button id="pause-video-result" class="btn-secondary px-4 py-2 rounded-lg hidden">
+                <i class="fa fa-pause mr-2"></i>暂停
+            </button>
         </div>
-        <div id="video-frame-container" class="overflow-auto h-[1000px] border rounded p-2 bg-gray-50">
+        <div id="video-frame-container" class="border rounded p-2 bg-gray-50 inline-block">
             <pre id="current-video-frame" class="result-text ${isMonospace ? 'font-mono' : ''}"
-                 style="font-size: 12px; line-height: 1.2; white-space: pre-wrap; word-break: normal;">${frames[0]}</pre>
+                 style="font-size: 12px; line-height: 1.2; white-space: pre; overflow: hidden;">${frames[0]}</pre>
         </div>
         <div class="mt-4">
             <div class="w-full bg-gray-200 rounded-full h-2.5">
@@ -686,8 +724,23 @@ function renderVideoControls() {
     `;
     resultContent.innerHTML = resultHtml;
 
+    // 获取内容尺寸并设置容器尺寸
+    setTimeout(() => {
+        const frameElement = document.getElementById('current-video-frame');
+        const containerElement = document.getElementById('video-frame-container');
+        if (frameElement && containerElement) {
+            const frameWidth = frameElement.scrollWidth;
+            const frameHeight = frameElement.scrollHeight;
+            containerElement.style.width = (frameWidth + 20) + 'px';
+            containerElement.style.maxHeight = (frameHeight + 20) + 'px';
+        }
+    }, 100);
+
     initVideoResultControls();
 }
+
+
+
 
 function initVideoResultControls() {
     const playBtn = document.getElementById('play-video-result');
@@ -739,6 +792,108 @@ function initVideoResultControls() {
     window.updateFrame = updateFrame; // 方便外部调用
 }
 
+// 添加播放模式切换事件
+playModeBtn.addEventListener('click', async () => {
+    const isVideoMode = playModeBtn.innerHTML.includes('播放视频');
+    playModeBtn.innerHTML = isVideoMode
+        ? '<i class="fa fa-text-height mr-2"></i> 播放字符'
+        : '<i class="fa fa-video-camera mr-2"></i> 播放视频';
+
+    if (!isVideoMode) {
+        // 切换到字符播放模式
+        if (frames.length > 0) {
+            renderVideoControls();
+        } else {
+            alert('没有可播放的字符帧');
+            playModeBtn.innerHTML = '<i class="fa fa-video-camera mr-2"></i> 播放视频';
+        }
+    } else {
+        // 切换到视频播放模式
+        if( videoPath===null) { //视频路径为空
+            playModeBtn.disabled = true;//初始设置不可交互
+            try {
+                // 显示加载状态
+                loading.classList.remove('hidden');
+                loadingText.textContent = '正在生成字符视频';
+                loadingDesc.textContent = '请稍候...';
+
+                // 发送请求到后端
+                try {
+                    const response = await fetch('http://localhost:8080/api/video/brailleVid', {
+                        method: 'POST',
+                    });
+                    console.log("后端成功返回！");
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    if (result.code !== 1 || !result.data.brailleVidPath) {
+                        throw new Error(result.msg || '生成视频失败');
+                    }
+                    videoPath= result.data.brailleVidPath;
+
+                    // 显示后端返回的视频
+                    const videoHtml = `
+                <div class="video-container flex justify-center">
+                    <video id="preview-video-player" controls class="w-full max-w-4xl" autoplay>
+                        <source src="${videoPath}" type="video/mp4">
+                        您的浏览器不支持视频播放。
+                    </video>
+                </div>`;
+                    resultContent.innerHTML = videoHtml;
+
+                    // 添加视频加载事件监听
+                    const videoPlayer = document.getElementById('preview-video-player');
+                    videoPlayer.addEventListener('loadeddata', () => {
+                        loading.classList.add('hidden');
+                    });
+
+                    videoPlayer.addEventListener('error', (e) => {
+                        loading.classList.add('hidden');
+                        alert('视频加载失败');
+                        // 恢复按钮状态
+                        playModeBtn.innerHTML = '<i class="fa fa-text-height mr-2"></i> 播放字符';
+                    });
+                } catch (error) {
+                    console.error('处理视频失败:', error);
+                    loading.classList.add('hidden');
+                    alert('生成视频失败，请重试');
+                    // 恢复按钮状态
+                    playModeBtn.innerHTML = '<i class="fa fa-text-height mr-2"></i> 播放字符';
+                }
+                ;
+            } catch (error) {
+                console.error('生成视频失败:', error);
+                loading.classList.add('hidden');
+                alert('生成视频失败，请重试');
+                // 恢复按钮状态
+                playModeBtn.innerHTML = '<i class="fa fa-text-height mr-2"></i> 播放字符';
+            }
+            playModeBtn.disabled = false;//初始设置不可交互
+        }else{
+            // 显示后端返回的视频
+            const videoHtml = `
+                <div class="video-container flex justify-center">
+                    <video id="preview-video-player" controls class="w-full max-w-4xl" autoplay>
+                        <source src="${videoPath}" type="video/mp4">
+                        您的浏览器不支持视频播放。
+                    </video>
+                </div>`;
+            resultContent.innerHTML = videoHtml;
+
+            // 添加视频加载事件监听
+            const videoPlayer = document.getElementById('preview-video-player');
+            videoPlayer.addEventListener('loadeddata', () => {
+                loading.classList.add('hidden');
+            });
+        }
+    }
+
+});
+
+
 // 保存按钮点击事件
 saveBtn.addEventListener('click', () => {
     if (currentMode === 'image') {
@@ -776,7 +931,7 @@ function saveImageResult() {
     }, 0);
 }
 
-// 保存视频结果
+// 保存视频转换的字符帧结果
 function saveVideoResult() {
     const frameContainer = document.getElementById('video-frame-container');
     if (!frameContainer || frames.length === 0) {
@@ -808,21 +963,57 @@ function saveVideoResult() {
     }, 0);
 }
 
-// 复制按钮点击事件
-copyBtn.addEventListener('click', () => {
-    const textElement = resultContent.querySelector('pre');
-    if (!textElement) {
-        alert('没有可复制的内容');
+function saveVideoToLocal(fileName = 'brailleStr.mp4') {
+    // 验证视频URL有效性
+    if (!videoPath || typeof videoPath !== 'string') {
+        console.error('无效的视频URL:', videoPath);
         return;
     }
+    console.log("视频url有效");
 
-    const text = textElement.textContent;
-    navigator.clipboard.writeText(text).then(() => {
-        showSuccessToast('已复制到剪贴板');
-    }).catch(err => {
-        console.error('复制失败:', err);
-        alert('复制失败，请重试');
-    });
+    // 构建新的下载链接，使用后端的接口路径
+    const downloadUrl = `http://localhost:8080/api/video/videos/${videoPath.split('/').pop()}`;
+
+    // 创建下载链接
+    const link = document.createElement('a');
+    link.href = downloadUrl;  // 使用后端提供的下载路径
+    link.download = fileName;  // 设置文件名
+
+    // 隐藏链接元素
+    link.style.position = 'absolute';
+    link.style.left = '-9999px';
+
+    // 添加到 DOM 并触发下载
+    document.body.appendChild(link);
+    link.click();
+
+    // 延迟移除链接，兼容部分浏览器的下载触发机制
+    setTimeout(() => {
+        document.body.removeChild(link);
+    }, 100);
+}
+
+
+// 复制按钮点击事件
+copyBtn.addEventListener('click', () => {
+    if (currentMode === 'image') {
+        const textElement = resultContent.querySelector('pre');
+        if (!textElement) {
+            alert('没有可复制的内容');
+            return;
+        }
+
+        const text = textElement.textContent;
+        navigator.clipboard.writeText(text).then(() => {
+            showSuccessToast('已复制到剪贴板');
+        }).catch(err => {
+            console.error('复制失败:', err);
+            alert('复制失败，请重试');
+        });
+    } else {
+        saveVideoToLocal(null);
+    }
+
 });
 
 // 显示成功提示
