@@ -103,10 +103,6 @@ function updateModeUI() {
     // 更新占位文本
     resultPlaceholderText.textContent = currentMode === 'image' ? '请上传图片并点击转换按钮' : '请上传视频并点击转换按钮';
 
-    // 更新加载文本
-    //loadingText.textContent = currentMode === 'image' ? '正在处理图片' : '正在处理视频';
-    //loadingDesc.textContent = currentMode === 'image' ? '正在将图片转换为字符艺术，请稍候...' : '正在将视频转换为字符艺术，这可能需要几分钟...';
-
     // 更新选择文件按钮文本
     const selectBtn = document.getElementById('select-file-btn');
     selectBtn.innerHTML = currentMode === 'image'
@@ -315,8 +311,8 @@ fileUpload.addEventListener('change', (e) => {
         //选择新文件，之前的资源全部清除
         videoPath=null;
         frames=[]
-        playModeBtn.disabled = true;//初始设置不可交互
-        playModeBtn.classList.add('play-mode-btn-disabled');//添加自定义灰色样式
+        playModeBtn.disabled = true;
+        playModeBtn.classList.add('play-mode-btn-disabled');//添加自定义红色样式
 
     }
 });
@@ -372,6 +368,11 @@ fileContainer.addEventListener('drop', (e) => {
         };
 
         reader.readAsDataURL(file);
+        //选择新文件，之前的资源全部清除
+        videoPath=null;
+        frames=[]
+        playModeBtn.disabled = true;
+        playModeBtn.classList.add('play-mode-btn-disabled');//添加自定义红色样式
     }
 });
 
@@ -407,7 +408,7 @@ convertBtn.addEventListener('click', async () => {
             return;
         }
         if (isProcessingVideo) {
-            //alert('视频正在处理中，请稍候...');
+            alert('视频正在处理中，请稍候......(刷新页面停止处理)');
             return;
         }
     }
@@ -430,6 +431,9 @@ convertBtn.addEventListener('click', async () => {
             await processImage(charWidth);
         } else {
             frames = [];
+            videoPath=null;
+            playModeBtn.disabled = true;//初始设置不可交互
+            playModeBtn.classList.add('play-mode-btn-disabled');//添加自定义红色样式
             await processVideo(charWidth);
         }
 
@@ -595,9 +599,6 @@ async function processVideoFrames(videoElement, fps, charWidth, clientId) {
 
     // 逐帧处理
     for (let i = 0; i < totalFrames; i++) {
-        // 更新进度
-        //loadingDesc.textContent = `正在提取视频帧 (${i}/${totalFrames})...`;
-
         // 跳转到当前帧时间
         video.currentTime = i / fps;
 
@@ -655,8 +656,6 @@ async function processVideoFrames(videoElement, fps, charWidth, clientId) {
     isProcessingVideo = false;
 
 }
-
-
 
 // ======================== 视频显示控件 ========================
 function displayCharFrame(charFrame) {
@@ -738,9 +737,6 @@ function renderVideoControls() {
 
     initVideoResultControls();
 }
-
-
-
 
 function initVideoResultControls() {
     const playBtn = document.getElementById('play-video-result');
@@ -893,7 +889,6 @@ playModeBtn.addEventListener('click', async () => {
 
 });
 
-
 // 保存按钮点击事件
 saveBtn.addEventListener('click', () => {
     if (currentMode === 'image') {
@@ -938,7 +933,6 @@ function saveVideoResult() {
         alert('没有可保存的视频结果');
         return;
     }
-
     // 创建帧分隔符（使用特殊字符组合，避免与内容冲突）
     const frameSeparator = '\n---FRAME_END---\n';
 
@@ -993,7 +987,6 @@ function saveVideoToLocal(fileName = 'brailleStr.mp4') {
     }, 100);
 }
 
-
 // 复制按钮点击事件
 copyBtn.addEventListener('click', () => {
     if (currentMode === 'image') {
@@ -1021,7 +1014,6 @@ function showSuccessToast(message) {
     successMessage.textContent = message;
     const toast = document.getElementById('success-toast');
     toast.classList.remove('translate-x-full');
-
     // 3秒后隐藏
     setTimeout(() => {
         toast.classList.add('translate-x-full');
@@ -1038,5 +1030,4 @@ window.addEventListener('resize', () => {
             displayResult(text, isMonospace);
         }
     }
-    // 视频模式下不需要重新渲染，因为会自动适应
 });
