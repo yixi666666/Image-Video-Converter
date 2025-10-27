@@ -23,8 +23,9 @@
     <properties>
         <java.version>17</java.version>
         <lombok>1.18.20</lombok>
-        <mybatis.spring>2.2.0</mybatis.spring>
+        <mybatis.spring>3.0.3 </mybatis.spring>
         <fastjson>1.2.76</fastjson>
+        <mysql-connector>8.0.33</mysql-connector>
         <druid>1.2.1</druid>
         <aspectj>1.9.4</aspectj>
         <jjwt>0.9.1</jjwt>
@@ -48,6 +49,11 @@
                 <groupId>com.alibaba</groupId>
                 <artifactId>fastjson</artifactId>
                 <version>${fastjson}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.mysql</groupId> <!-- 新 groupId -->
+                <artifactId>mysql-connector-j</artifactId> <!-- 新 artifactId -->
+                <version>${mysql-connector}</version>
             </dependency>
             <dependency>
                 <groupId>com.alibaba</groupId>

@@ -4,3 +4,33 @@ server:
 video:
   local-path: "F:/Java-related Projects/Image-Video-Converter/converter-server/src/main/resources/temp/"  # 视频存储路径
   http-prefix: "/api/videos/"  # HTTP访问前缀
+spring:
+  profiles:
+    active: dev
+  datasource:
+    # 新增此行，指定Druid数据源类型
+    type: com.alibaba.druid.pool.DruidDataSource
+    driver-class-name: ${converter.datasource.driver-class-name}
+    url: jdbc:mysql://${converter.datasource.host}:${converter.datasource.port}/${converter.datasource.database}?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true
+    username: ${converter.datasource.username}
+    password: ${converter.datasource.password}
+    druid:
+      initial-size: 5
+      min-idle: 5
+      max-active: 20
+
+mybatis:
+  #mapper配置文件
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.yixi.entity
+  configuration:
+    #开启驼峰命名
+    map-underscore-to-camel-case: true
+
+logging:
+  level:
+    com:
+      yixi:
+        mapper: debug
+        service: info
+        controller: info

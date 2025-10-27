@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>视觉编码器 - 登录</title>
+    <!-- 引入外部样式表复用公共样式 -->
+    <link rel="stylesheet" href="converter.css">
+    <style>
+        /* 保留页面独有的背景样式（与converter.css区分） */
+        body {
+            background:
+                    linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 25%, #faf5ff 50%, #f3e8ff 75%, #f0fdfa 100%),
+                    radial-gradient(circle at 10% 20%, rgba(59, 130, 246, 0.1) 0%, transparent 20%),
+                    radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 20%),
+                    radial-gradient(circle at 50% 50%, rgba(6, 182, 212, 0.1) 0%, transparent 30%);
+            background-attachment: fixed;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 1rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 保留背景装饰元素及动画 */
+        .bg-shape {
+            position: absolute;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(139, 92, 246, 0.15));
+            z-index: 0;
+        }
+
+        .shape-1 { width: 200px; height: 200px; top: 10%; left: 5%; animation: float 15s infinite ease-in-out; }
+        .shape-2 { width: 150px; height: 150px; bottom: 15%; right: 8%; animation: float 12s infinite ease-in-out reverse; }
+        .shape-3 { width: 100px; height: 100px; top: 40%; right: 15%; animation: float 10s infinite ease-in-out; }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(10deg); }
+        }
+
+        /* 登录卡片容器样式 */
+        .card-gradient {
+            padding: 4px;
+            border-radius: 1rem;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+            width: 100%;
+            max-width: 420px;
+            position: relative;
+            overflow: hidden;
+            z-index: 10;
+        }
+
+        .card-gradient::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+            transform: rotate(45deg);
+            animation: shimmer 6s infinite linear;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+
+        /* 登录卡片内容区 */
+        .login-card {
+            background: white;
+            border-radius: 0.8rem;
+            padding: 2.5rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .login-header h1 {
+            color: #1e293b;
+            margin-bottom: 0.5rem;
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .login-header p {
+            color: #64748b;
+            margin: 0;
+            font-size: 1rem;
+        }
+
+        /* 表单布局样式 */
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #374151;
+            font-weight: 500;
+        }
+
+        .form-options {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        /* 按钮补充样式 */
+        .btn-gradient {
+            width: 100%;
+            padding: 0.85rem 1rem;
+            border-radius: 0.75rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-gradient:active {
+            transform: translateY(0);
+        }
+
+        /* 响应式调整 */
+        @media (max-width: 480px) {
+            .login-card {
+                padding: 1.8rem;
+            }
+
+            .shape-1, .shape-2, .shape-3 {
+                display: none;
+            }
+        }
+
+        /* 加载动画和错误提示（保持独有样式） */
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 1rem;
+        }
+
+        .spinner {
+            border: 4px solid rgba(59, 130, 246, 0.2);
+            border-radius: 50%;
+            border-top: 4px solid #3b82f6;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            color: #ef4444;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+            text-align: center;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+<!-- 背景装饰元素 -->
+<div class="bg-shape shape-1"></div>
+<div class="bg-shape shape-2"></div>
+<div class="bg-shape shape-3"></div>
+
+<!-- 登录卡片 -->
+<div class="card-gradient">
+    <div class="login-card">
+        <div class="login-header">
+            <h1>视觉编码器</h1>
+            <p>将图片或视频以字符形式展现</p>
+        </div>
+
+        <form id="login-form">
+            <div class="form-group">
+                <label for="username">账号</label>
+                <!-- 使用converter.css中的param-control样式替代原有form-control -->
+                <input type="text" id="username" class="param-control" placeholder="请输入您的账号" required>
+            </div>
+
+            <div class="form-group">
+                <label for="password">密码</label>
+                <input type="password" id="password" class="param-control" placeholder="请输入您的密码" required>
+            </div>
+
+            <div class="form-options">
+                <!-- 复用converter.css中的复选框样式 -->
+                <div class="checkbox-container">
+                    <input type="checkbox" id="remember" class="checkbox-input">
+                    <label for="remember" class="checkbox-label">记住登录状态</label>
+                </div>
+            </div>
+
+            <!-- 复用converter.css中的按钮渐变样式 -->
+            <button type="submit" class="btn-gradient">登录</button>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>正在登录中...</p>
+            </div>
+
+            <div class="error-message" id="error-message">
+                账号或密码错误，请重试
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // 登录表单提交处理
+    document.getElementById('login-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        const remember = document.getElementById('remember').checked;
+        const loading = document.getElementById('loading');
+        const errorMessage = document.getElementById('error-message');
+
+        errorMessage.style.display = 'none';
+
+        if (!username || !password) {
+            errorMessage.textContent = '请填写账号和密码';
+            errorMessage.style.display = 'block';
+            return;
+        }
+
+        loading.style.display = 'block';
+
+        try {
+            const response = await fetch('http://localhost:8080/api/user/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ accountId: username, password })
+            });
+
+            const result = await response.json();
+
+            if (result.code === 1) {
+                if (remember) {
+                    localStorage.setItem('rememberLogin', 'true');
+                    localStorage.setItem('username', username);
+                    localStorage.setItem('password', password);
+                } else {
+                    localStorage.removeItem('rememberLogin');
+                    localStorage.removeItem('username');
+                    localStorage.removeItem('password');
+                }
+                window.location.href = 'converter.html';
+            } else {
+                errorMessage.textContent = result.msg || '账号或密码错误，请重试';
+                errorMessage.style.display = 'block';
+                loading.style.display = 'none';
+            }
+        } catch (error) {
+            console.error('登录请求失败:', error);
+            errorMessage.textContent = '网络错误，请稍后重试';
+            errorMessage.style.display = 'block';
+            loading.style.display = 'none';
+        }
+    });
+
+    // 页面加载时恢复记住的登录状态
+    window.addEventListener('DOMContentLoaded', () => {
+        if (localStorage.getItem('rememberLogin') === 'true') {
+            document.getElementById('username').value = localStorage.getItem('username') || '';
+            document.getElementById('password').value = localStorage.getItem('password') || '';
+            document.getElementById('remember').checked = true;
+        }
+    });
+</script>
+</body>
+</html>
