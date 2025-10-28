@@ -262,6 +262,48 @@ function initScrollSync() {
         });
     }
 }
+//带token的请求
+async function fetchWithToken(url, options = {}) {
+    // 从localStorage获取token
+    const token = localStorage.getItem('token');
+
+    // 设置默认headers
+    const headers = {
+        'Content-Type': 'application/json',
+        ...options.headers
+    };
+
+    // 如果有token，添加到请求头
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    // 合并请求选项
+    const fetchOptions = {
+        ...options,
+        headers
+    };
+
+    try {
+        // 发送请求
+        const response = await fetch(url, fetchOptions);
+
+        // 检查是否401未授权（token无效或过期）
+        if (response.status === 401) {
+            // 清除过期token
+            localStorage.removeItem('token');
+            // 跳转到登录页
+            window.location.href = 'index.html';
+            throw new Error('Token已过期，请重新登录');
+        }
+
+        return response;
+    } catch (error) {
+        // 网络错误等其他异常
+        console.error('请求失败:', error);
+        throw error;
+    }
+}
 
 // 添加新文件的点击事件
 document.getElementById('select-file-btn').addEventListener('click', () => {
@@ -470,12 +512,9 @@ async function processImage(charWidth) {
             outputWidth: charWidth
         }
     };
-
-    const response = await fetch('http://localhost:8080/api/image/toBraille', {
+    // 使用带token的请求工具
+    const response = await fetchWithToken('http://localhost:8080/api/image/toBraille', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
         body: JSON.stringify(requestData)
     });
 
@@ -507,7 +546,12 @@ let frameQueue = [];
 let clientId = null; // 保存后端分配的ID
 
 function initWebSocket() {
-    ws = new WebSocket('ws://localhost:8080/ws/video-char');
+    const token = localStorage.getItem('token');
+    // 在WebSocket连接中添加token参数
+    const wsUrl = token
+        ? `ws://localhost:8080/ws/video-char?token=${token}`
+        : 'ws://localhost:8080/ws/video-char';
+    ws = new WebSocket(wsUrl);
 
     ws.addEventListener('open', () => {
         console.log('WebSocket 已连接');
@@ -630,10 +674,9 @@ async function processVideoFrames(videoElement, fps, charWidth, clientId) {
             }
         };
 
-        // 发给后端处理
-        const response = await fetch(`http://localhost:8080/api/video/convertFrame/${clientId}`, {
+        // 发给后端处理（使用带token的请求）
+        const response = await fetchWithToken(`http://localhost:8080/api/video/convertFrame/${clientId}`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(requestData)
         });
 
@@ -644,12 +687,9 @@ async function processVideoFrames(videoElement, fps, charWidth, clientId) {
         }
     }
 
-    // 所有帧处理完成后，通知后端
-    await fetch('http://localhost:8080/api/video/finish', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        }
+    // 所有帧处理完成后，通知后端（使用带token的请求）
+    await fetchWithToken('http://localhost:8080/api/video/finish', {
+        method: 'POST'
     });
 
     console.log('视频处理完成');
@@ -815,7 +855,7 @@ playModeBtn.addEventListener('click', async () => {
 
                 // 发送请求到后端
                 try {
-                    const response = await fetch('http://localhost:8080/api/video/brailleVid', {
+                    const response = await fetchWithToken('http://localhost:8080/api/video/brailleVid', {
                         method: 'POST',
                     });
                     console.log("后端成功返回！");
@@ -957,34 +997,49 @@ function saveVideoResult() {
     }, 0);
 }
 
-function saveVideoToLocal(fileName = 'brailleStr.mp4') {
+async function saveVideoToLocal() {
+    fileName = 'brailleStr.mp4'
     // 验证视频URL有效性
     if (!videoPath || typeof videoPath !== 'string') {
         console.error('无效的视频URL:', videoPath);
         return;
     }
-    console.log("视频url有效");
 
-    // 构建新的下载链接，使用后端的接口路径
-    const downloadUrl = `http://localhost:8080/api/video/videos/${videoPath.split('/').pop()}`;
+    try {
+        console.log("videoPath:"+videoPath);
+        // 构建请求URL
+        const videoFileName = videoPath.split('/').pop();
+        console.log(videoFileName)
+        const url = `http://localhost:8080/api/video/videos/${videoFileName}`;
 
-    // 创建下载链接
-    const link = document.createElement('a');
-    link.href = downloadUrl;  // 使用后端提供的下载路径
-    link.download = fileName;  // 设置文件名
+        // 使用带token的请求获取视频blob
+        const response = await fetchWithToken(url);
 
-    // 隐藏链接元素
-    link.style.position = 'absolute';
-    link.style.left = '-9999px';
+        if (!response.ok) {
+            throw new Error(`下载失败: ${response.status}`);
+        }
 
-    // 添加到 DOM 并触发下载
-    document.body.appendChild(link);
-    link.click();
+        const blob = await response.blob();
+        const objectUrl = URL.createObjectURL(blob);
 
-    // 延迟移除链接，兼容部分浏览器的下载触发机制
-    setTimeout(() => {
-        document.body.removeChild(link);
-    }, 100);
+        // 创建下载链接
+        const link = document.createElement('a');
+        link.href = objectUrl;
+        link.download = fileName;
+
+        // 触发下载
+        document.body.appendChild(link);
+        link.click();
+
+        // 清理资源
+        setTimeout(() => {
+            document.body.removeChild(link);
+            URL.revokeObjectURL(objectUrl);
+        }, 100);
+    } catch (error) {
+        console.error('下载视频失败:', error);
+        alert('下载视频失败，请重试');
+    }
 }
 
 // 复制按钮点击事件

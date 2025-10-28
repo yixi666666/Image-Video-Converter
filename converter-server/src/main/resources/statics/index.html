@@ -257,6 +257,11 @@
             const result = await response.json();
 
             if (result.code === 1) {
+                // 从 result.data 中提取 token（核心修正点）
+                const token = result.data?.token;  // 使用可选链操作符，避免data为undefined时报错
+                if (token) {  // 确保token存在再存储
+                    localStorage.setItem('token', token);
+                }
                 if (remember) {
                     localStorage.setItem('rememberLogin', 'true');
                     localStorage.setItem('username', username);

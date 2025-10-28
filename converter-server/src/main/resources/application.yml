@@ -34,3 +34,12 @@ logging:
         mapper: debug
         service: info
         controller: info
+
+yixi:
+  jwt:
+    # 设置jwt签名加密时使用的秘钥
+    user-secret-key: haJiMi
+    # 设置jwt过期时间
+    user-ttl: 7200000
+    # 设置前端传递过来的令牌名称
+    user-token-name: Authorization

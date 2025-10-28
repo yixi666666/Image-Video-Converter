@@ -32,7 +32,7 @@ public class VideoController {
     @Autowired
     private VideoFrameProcessor frameProcessor;
 
-    @Value("${video.local-path:F:/Java-related Projects/Image-Video-Converter/converter-server/src/main/resources/temp/}")
+    @Value("${video.local-path:F:/Java-related Projects/imgOrVideoToStr/converter-server/src/main/resources/temp/}")
     private String localVideoPath;
 
     @Value("${video.http-prefix:/api/videos/}")
@@ -67,7 +67,7 @@ public class VideoController {
     }
 
     @PostMapping("/finish")
-    public Result<Void> finishProcessing() {
+    public Result<Void> finishProcessing(){
         frameProcessor.markProcessingComplete();
         return Result.success();
     }
@@ -114,7 +114,7 @@ public class VideoController {
             if (!videoFile.exists()) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
             }
-            log.info("下载视频:{}",videoName);
+            log.info("下载视频：{}",videoFile);
 
             // 创建文件资源
             Resource resource = new FileSystemResource(videoFile);

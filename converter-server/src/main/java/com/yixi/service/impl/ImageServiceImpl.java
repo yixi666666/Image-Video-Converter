@@ -53,7 +53,6 @@ public class ImageServiceImpl implements ImageService {
         String imageBase64 = imgAndConfig.getImage().getImageBase64();
         BrailleConvertConfigDTO config = imgAndConfig.getConfig();
 
-        log.info(config.toString());
         BufferedImage originalImage = ImageUtils.base64ToBufferedImage(imageBase64);
         BufferedImage processedImage = ImageProcessor.loadImage(originalImage,config.getOutputWidth());
         if(config.getIsDithering()){
